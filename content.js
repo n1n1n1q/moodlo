@@ -1,3 +1,41 @@
+// Maintain a flag to track if the extension context is valid
+let isExtensionContextValid = true;
+
+// Handle potential context invalidation
+chrome.runtime.onMessage.addListener(function() {
+  // If we can successfully receive a message, context is valid
+  isExtensionContextValid = true;
+  return true;
+});
+
+// Check if extension context is still valid
+function checkExtensionContext() {
+  try {
+    // Try to access the runtime ID - this will fail if context is invalid
+    chrome.runtime.id;
+    return true;
+  } catch (e) {
+    isExtensionContextValid = false;
+    console.log("Extension context is invalid, some features may not work");
+    return false;
+  }
+}
+
+// Safe wrapper for Chrome API calls
+function safeCallChromeApi(callback) {
+  if (!checkExtensionContext()) {
+    console.log("Skipping Chrome API call due to invalid context");
+    return;
+  }
+  
+  try {
+    callback();
+  } catch (error) {
+    console.log("Error calling Chrome API:", error);
+    // Don't propagate the error further
+  }
+}
+
 // Listen for text selections
 document.addEventListener('mouseup', function(event) {
   const selection = window.getSelection().toString().trim();
@@ -5,38 +43,69 @@ document.addEventListener('mouseup', function(event) {
   // Only process non-empty selections
   if (selection) {
     try {
+      if (!checkExtensionContext()) {
+        console.log("Selection detected but extension context is invalid");
+        
+        // Create and show HTML popup directly without using Chrome APIs
+        createStandaloneHtmlPopup(selection, event);
+        return;
+      }
+      
       // Get settings before taking any action
-      chrome.storage.sync.get(['settings'], function(data) {
-        const settings = data.settings || {
-          autoHighlightEnabled: true,
-          popupEnabled: true,
-          htmlPopupEnabled: false,
-          autoClearSelection: true,
-          keyboardShortcutsEnabled: true
-        };
-        
-        // Save the current selection to storage
-        chrome.storage.local.set({ 'currentSelection': selection });
-        
-        // Let the background script know there's a new selection and request popup if enabled
-        chrome.runtime.sendMessage({ 
-          action: 'newSelection',
-          selection: selection,
-          showPopup: settings.popupEnabled
-        });
-        
-        // If we're on a Moodle quiz page and auto-highlight is enabled
-        if (isMoodlePage() && settings.autoHighlightEnabled) {
-          highlightCorrectAnswers(selection);
+      safeCallChromeApi(() => {
+        chrome.storage.sync.get(['settings'], function(data) {
+          const settings = data.settings || {
+            autoHighlightEnabled: true,
+            popupEnabled: true,
+            htmlPopupEnabled: false,
+            autoClearSelection: true,
+            keyboardShortcutsEnabled: true
+          };
           
-          // Clear the selection to make it disappear if auto-clear is enabled
-          if (settings.autoClearSelection) {
-            window.getSelection().removeAllRanges();
+          // Debug log
+          console.log("Selection detected:", selection);
+          console.log("Current settings:", settings);
+          
+          // Save the current selection to storage
+          safeCallChromeApi(() => {
+            chrome.storage.local.set({ 'currentSelection': selection });
+          });
+          
+          // Let the background script know there's a new selection and request popup if enabled
+          safeCallChromeApi(() => {
+            chrome.runtime.sendMessage({ 
+              action: 'newSelection',
+              selection: selection,
+              showPopup: settings.popupEnabled
+            });
+          });
+          
+          // Check if we're on a Moodle page
+          const isMoodlePg = isMoodlePage();
+          console.log("Is Moodle page:", isMoodlePg);
+          
+          // Always try to show the HTML popup if enabled, even if not on a Moodle page
+          if (settings.htmlPopupEnabled) {
+            console.log("HTML popup is enabled, attempting to show...");
+            showHtmlPopup(selection, event);
           }
-        }
+          
+          // Continue with highlighting if we're on a Moodle page
+          if (isMoodlePg && settings.autoHighlightEnabled) {
+            highlightCorrectAnswers(selection);
+            
+            // Clear the selection to make it disappear if auto-clear is enabled
+            if (settings.autoClearSelection) {
+              window.getSelection().removeAllRanges();
+            }
+          }
+        });
       });
     } catch (error) {
-      console.error("Error processing selection:", error);
+      console.log("Error processing selection:", error);
+      
+      // Try to show standalone popup as fallback in case of extension context invalidation
+      createStandaloneHtmlPopup(selection, event);
     }
   }
 });
@@ -44,30 +113,145 @@ document.addEventListener('mouseup', function(event) {
 // Listen for keyboard shortcuts
 document.addEventListener('keydown', function(event) {
   try {
-    // Check if keyboard shortcuts are enabled
-    chrome.storage.sync.get(['settings'], function(data) {
-      const settings = data.settings || {
-        keyboardShortcutsEnabled: true
-      };
-      
-      // Only process if shortcuts are enabled
-      if (settings.keyboardShortcutsEnabled) {
-        // Listen for Escape key to clear selections
-        if (event.key === 'Escape') {
-          clearAllSelections();
-          removeHtmlPopup(); // Also remove any HTML popup
-        }
-        // Listen for Alt+C (or Option+C on Mac) to clear selections
-        else if (event.altKey && event.key === 'c') {
-          clearAllSelections();
-          removeHtmlPopup(); // Also remove any HTML popup
-        }
+    if (!checkExtensionContext()) {
+      // If context is invalid, just handle basic shortcuts without using Chrome APIs
+      if (event.key === 'Escape' || (event.altKey && event.key === 'c')) {
+        window.getSelection().removeAllRanges();
+        removeHtmlPopup();
       }
+      return;
+    }
+    
+    // Check if keyboard shortcuts are enabled
+    safeCallChromeApi(() => {
+      chrome.storage.sync.get(['settings'], function(data) {
+        const settings = data.settings || {
+          keyboardShortcutsEnabled: true
+        };
+        
+        // Only process if shortcuts are enabled
+        if (settings.keyboardShortcutsEnabled) {
+          // Listen for Escape key to clear selections
+          if (event.key === 'Escape') {
+            clearAllSelections();
+            removeHtmlPopup(); // Also remove any HTML popup
+          }
+          // Listen for Alt+C (or Option+C on Mac) to clear selections
+          else if (event.altKey && event.key === 'c') {
+            clearAllSelections();
+            removeHtmlPopup(); // Also remove any HTML popup
+          }
+        }
+      });
     });
   } catch (error) {
-    console.error("Error processing keyboard shortcut:", error);
+    console.log("Error processing keyboard shortcut:", error);
+    
+    // Fallback behavior for keyboard shortcuts when context is invalid
+    if (event.key === 'Escape' || (event.altKey && event.key === 'c')) {
+      window.getSelection().removeAllRanges();
+      removeHtmlPopup();
+    }
   }
 });
+
+// Function to create a standalone HTML popup without using Chrome storage APIs
+// This is used as a fallback when the extension context is invalidated
+function createStandaloneHtmlPopup(selection, event) {
+  console.log("Creating standalone HTML popup for selection:", selection);
+  
+  // Create a simple popup with just the selected text
+  const popup = document.createElement('div');
+  popup.id = 'moodle-html-popup';
+  popup.style.cssText = `
+    position: fixed;
+    z-index: 10000;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    padding: 15px;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+  `;
+
+  // Create popup header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  `;
+  
+  // Add title
+  const title = document.createElement('h3');
+  title.textContent = 'Selected Text';
+  title.style.margin = '0';
+  title.style.fontSize = '16px';
+  header.appendChild(title);
+  
+  // Add close button
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = `
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #777;
+  `;
+  closeBtn.addEventListener('click', removeHtmlPopup);
+  header.appendChild(closeBtn);
+  
+  popup.appendChild(header);
+  
+  // Add selection text
+  const contentDiv = document.createElement('div');
+  contentDiv.style.whiteSpace = 'pre-wrap';
+  contentDiv.style.wordBreak = 'break-word';
+  contentDiv.textContent = selection;
+  popup.appendChild(contentDiv);
+  
+  // Note about extension context
+  const noteDiv = document.createElement('div');
+  noteDiv.style.marginTop = '10px';
+  noteDiv.style.fontSize = '12px';
+  noteDiv.style.color = '#666';
+  noteDiv.textContent = 'Note: Extension context is currently invalid. Some features may be limited.';
+  popup.appendChild(noteDiv);
+  
+  // Position the popup near the selection or mouse event
+  if (event) {
+    popup.style.left = `${event.pageX + 10}px`;
+    popup.style.top = `${event.pageY + 10}px`;
+  } else {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      popup.style.left = `${window.pageXOffset + rect.right + 10}px`;
+      popup.style.top = `${window.pageYOffset + rect.top}px`;
+    } else {
+      popup.style.left = '50%';
+      popup.style.top = '100px';
+      popup.style.transform = 'translateX(-50%)';
+    }
+  }
+  
+  // Add to document
+  document.body.appendChild(popup);
+  console.log("Standalone HTML popup added to page");
+  
+  // Make popup draggable
+  makeElementDraggable(popup);
+}
 
 // Function to clear all selections
 function clearAllSelections() {
@@ -83,19 +267,20 @@ function clearAllSelections() {
   // Uncheck any checkboxes that were checked by the extension
   const checkboxes = document.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
-    // Only uncheck if it was automatically checked (you might want to add a custom class
-    // to track which ones were automatically checked vs. manually checked)
+    // Only uncheck if it was automatically checked
     if (checkbox.closest('.moodle-answer-highlight')) {
       checkbox.checked = false;
     }
   });
   
-  // Let the user know the selections were cleared
   console.log('Selections cleared via keyboard shortcut');
 }
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  // Update context valid flag whenever we receive a message
+  isExtensionContextValid = true;
+  
   if (request.action === "getSelection") {
     sendResponse({ selection: window.getSelection().toString().trim() });
   }
@@ -103,51 +288,106 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   // Handle the highlight answers request from context menu
   if (request.action === "highlightAnswers" && request.selection) {
     try {
-      chrome.storage.sync.get(['settings'], function(data) {
-        const settings = data.settings || {
-          autoHighlightEnabled: true,
-          autoClearSelection: true,
-          htmlPopupEnabled: false
-        };
-        
-        // Only highlight if the feature is enabled
-        if (settings.autoHighlightEnabled && isMoodlePage()) {
-          highlightCorrectAnswers(request.selection);
+      safeCallChromeApi(() => {
+        chrome.storage.sync.get(['settings'], function(data) {
+          const settings = data.settings || {
+            autoHighlightEnabled: true,
+            autoClearSelection: true,
+            htmlPopupEnabled: false
+          };
           
-          // Show HTML-based popup if enabled
-          if (settings.htmlPopupEnabled) {
-            showHtmlPopup(request.selection, null);
+          // Only highlight if the feature is enabled
+          if (settings.autoHighlightEnabled && isMoodlePage()) {
+            highlightCorrectAnswers(request.selection);
+            
+            // Show HTML-based popup if enabled
+            if (settings.htmlPopupEnabled) {
+              showHtmlPopup(request.selection, null);
+            }
+            
+            // Clear the selection if auto-clear is enabled
+            if (settings.autoClearSelection) {
+              window.getSelection().removeAllRanges();
+            }
           }
-          
-          // Clear the selection if auto-clear is enabled
-          if (settings.autoClearSelection) {
-            window.getSelection().removeAllRanges();
-          }
-        }
+        });
       });
     } catch (error) {
-      console.error("Error handling highlight answers request:", error);
+      console.log("Error handling highlight answers request:", error);
+      
+      // Fallback for context invalidation
+      if (isMoodlePage()) {
+        createStandaloneHtmlPopup(request.selection, null);
+      }
     }
   }
+  
+  // Always return true from the event listener to indicate async response
+  return true;
 });
+
+// Function to get QA data from storage with safer error handling
+async function getQAData() {
+  if (!checkExtensionContext()) {
+    console.log("Cannot get QA data: extension context is invalid");
+    return [];
+  }
+  
+  try {
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.storage.local.get(['qaData'], function(data) {
+          if (chrome.runtime.lastError) {
+            console.log("Error getting qaData:", chrome.runtime.lastError);
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(data.qaData || []);
+          }
+        });
+      } catch (error) {
+        console.log("Error in getQAData promise:", error);
+        resolve([]);  // Resolve with empty array instead of rejecting
+      }
+    });
+  } catch (error) {
+    console.log("Error getting QA data:", error);
+    return [];
+  }
+}
 
 // Function to create and show HTML-based popup
 async function showHtmlPopup(selection, event) {
   try {
+    console.log("showHtmlPopup called with selection:", selection);
+    
+    if (!checkExtensionContext()) {
+      // Fallback to standalone popup if context is invalid
+      createStandaloneHtmlPopup(selection, event);
+      return;
+    }
+    
     // Remove any existing popup
     removeHtmlPopup();
     
     // Get QA data from storage
     const qaData = await getQAData();
+    console.log("QA data retrieved:", qaData?.length || 0, "items");
+    
     if (!qaData || qaData.length === 0) {
       console.log("No QA data available for HTML popup");
+      // Show fallback popup
+      createStandaloneHtmlPopup(selection, event);
       return;
     }
 
     // Find similar questions
     const similarQuestions = findSimilarQuestions(selection, qaData);
+    console.log("Similar questions found:", similarQuestions.length);
+    
     if (similarQuestions.length === 0) {
       console.log("No similar questions found for HTML popup");
+      // Show fallback popup
+      createStandaloneHtmlPopup(selection, event);
       return;
     }
 
@@ -155,7 +395,7 @@ async function showHtmlPopup(selection, event) {
     const popup = document.createElement('div');
     popup.id = 'moodle-html-popup';
     popup.style.cssText = `
-      position: absolute;
+      position: fixed;
       z-index: 10000;
       background: white;
       border: 1px solid #ccc;
@@ -293,12 +533,16 @@ async function showHtmlPopup(selection, event) {
     
     // Add to document
     document.body.appendChild(popup);
+    console.log("HTML popup added to page");
     
     // Make popup draggable
     makeElementDraggable(popup);
     
   } catch (error) {
-    console.error("Error showing HTML popup:", error);
+    console.log("Error showing HTML popup:", error);
+    
+    // Fallback to simpler popup in case of error
+    createStandaloneHtmlPopup(selection, event);
   }
 }
 
@@ -367,9 +611,32 @@ function findSimilarQuestions(selection, qaData) {
 
 // Check if we're on a Moodle page
 function isMoodlePage() {
-  // Look for typical Moodle page elements
-  return document.querySelector('.que') !== null || 
-         document.querySelector('.formulation') !== null;
+  // More comprehensive check for Moodle page elements
+  const moodleElements = [
+    '.que', 
+    '.formulation', 
+    '.content',
+    '.questionflagsaveform',
+    '.que.multichoice',
+    '.que.match',
+    '.que.truefalse',
+    '.que.shortanswer',
+    '.que.essay',
+    '.moodle-dialogue-base'
+  ];
+  
+  // Check if URL contains 'moodle'
+  const urlContainsMoodle = window.location.href.toLowerCase().includes('moodle');
+  
+  // Check for any Moodle elements
+  const hasMoodleElements = moodleElements.some(selector => 
+    document.querySelector(selector) !== null
+  );
+  
+  console.log("URL contains 'moodle':", urlContainsMoodle);
+  console.log("Has Moodle elements:", hasMoodleElements);
+  
+  return urlContainsMoodle || hasMoodleElements;
 }
 
 // Main function to highlight correct answers
