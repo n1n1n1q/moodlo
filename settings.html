@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moodle Answer Highlighter Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #4285f4;
+      margin-bottom: 20px;
+    }
+    .setting-group {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .setting-description {
+      flex: 1;
+    }
+    .setting-description h3 {
+      margin-top: 0;
+      margin-bottom: 5px;
+    }
+    .setting-description p {
+      margin-top: 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    input:focus + .slider {
+      box-shadow: 0 0 1px #4CAF50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .status-saved {
+      background-color: #4CAF50;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 20px;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .status-saved.visible {
+      opacity: 1;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Moodle Answer Highlighter Settings</h1>
+  
+  <div class="setting-group">
+    <h2>Feature Settings</h2>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Auto-Highlight on Selection</h3>
+        <p>Automatically highlight answers when text is selected on Moodle pages</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="autoHighlightEnabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Show Popup on Selection</h3>
+        <p>Show the extension popup when text is selected</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="popupEnabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Show HTML-based Popup</h3>
+        <p>Show answers in an HTML popup directly on the Moodle page</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="htmlPopupEnabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Auto-Clear Selection</h3>
+        <p>Automatically clear the text selection after highlighting</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="autoClearSelection" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+  
+  <div class="setting-group">
+    <h2>Keyboard Shortcuts</h2>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Clear Selection Shortcut</h3>
+        <p>Use Escape or Alt+C to clear selections and highlights</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="keyboardShortcutsEnabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+  
+  <div>
+    <button id="save-btn">Save Settings</button>
+    <button id="reset-btn">Reset to Defaults</button>
+  </div>
+  
+  <div id="status-saved" class="status-saved">Settings saved!</div>
+  
+  <script src="settings.js"></script>
+</body>
+</html>

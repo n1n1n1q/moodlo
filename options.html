@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moodle Answer Highlighter Options</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #4285f4;
+      margin-bottom: 20px;
+    }
+    /* Tab styles */
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+    .tab {
+      padding: 10px 20px;
+      background-color: #f1f1f1;
+      cursor: pointer;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      transition: all 0.3s;
+    }
+    .tab:hover {
+      background-color: #e1e1e1;
+    }
+    .tab.active {
+      background-color: #4285f4;
+      color: white;
+      border-color: #4285f4;
+      position: relative;
+      z-index: 2;
+    }
+    .tab-content {
+      display: none;
+      padding: 15px 0;
+      animation: fadeIn 0.5s;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Settings styles */
+    .setting-group {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .setting-description {
+      flex: 1;
+    }
+    .setting-description h3 {
+      margin-top: 0;
+      margin-bottom: 5px;
+    }
+    .setting-description p {
+      margin-top: 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    input:focus + .slider {
+      box-shadow: 0 0 1px #4CAF50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    /* QA Manager styles */
+    .qa-form {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea {
+      height: 100px;
+      resize: vertical;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #3367d6;
+    }
+    button.delete {
+      background: #ea4335;
+    }
+    button.delete:hover {
+      background: #d33426;
+    }
+    button.import-export {
+      background: #34a853;
+    }
+    button.import-export:hover {
+      background: #2d9144;
+    }
+    .qa-list {
+      margin-top: 20px;
+    }
+    .qa-item {
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      background-color: #fff;
+    }
+    .qa-question {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .qa-answer {
+      margin-bottom: 15px;
+      white-space: pre-line;
+    }
+    .qa-controls {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .no-data {
+      font-style: italic;
+      color: #666;
+    }
+    .hidden {
+      display: none;
+    }
+    #importInput {
+      display: none;
+    }
+    
+    /* Status message styles */
+    .status-message {
+      background-color: #4CAF50;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 20px;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .status-message.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Moodle Answer Highlighter</h1>
+  
+  <!-- Tabs navigation -->
+  <div class="tabs">
+    <div class="tab active" data-tab="qa-manager">Q&A Manager</div>
+    <div class="tab" data-tab="settings">Settings</div>
+  </div>
+  
+  <!-- Q&A Manager Tab -->
+  <div id="qa-manager" class="tab-content active">
+    <div class="qa-form">
+      <h2>Add New Question & Answer</h2>
+      <label for="question">Question:</label>
+      <input type="text" id="question" placeholder="Enter your question">
+      
+      <label for="answer">Answer:</label>
+      <textarea id="answer" placeholder="Enter your answer"></textarea>
+      
+      <div class="button-group">
+        <button id="add-btn">Add Q&A</button>
+        <button id="import-btn" class="import-export">Import Q&A</button>
+        <button id="export-btn" class="import-export">Export Q&A</button>
+        <input type="file" id="importInput" accept=".json">
+      </div>
+    </div>
+    
+    <div class="qa-list" id="qa-container">
+      <p class="no-data">No Q&A data available yet.</p>
+    </div>
+    
+    <div id="qa-status-message" class="status-message">Changes saved!</div>
+  </div>
+  
+  <!-- Settings Tab -->
+  <div id="settings" class="tab-content">
+    <div class="setting-group">
+      <h2>Feature Settings</h2>
+      
+      <div class="setting-item">
+        <div class="setting-description">
+          <h3>Auto-Highlight on Selection</h3>
+          <p>Automatically highlight answers when text is selected on Moodle pages</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoHighlightEnabled" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-description">
+          <h3>Show Popup on Selection</h3>
+          <p>Show the extension popup when text is selected</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="popupEnabled" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-description">
+          <h3>Show HTML-based Popup</h3>
+          <p>Show answers in an HTML popup directly on the Moodle page</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="htmlPopupEnabled">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-description">
+          <h3>Auto-Clear Selection</h3>
+          <p>Automatically clear the text selection after highlighting</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoClearSelection" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h2>Keyboard Shortcuts</h2>
+      
+      <div class="setting-item">
+        <div class="setting-description">
+          <h3>Clear Selection Shortcut</h3>
+          <p>Use Escape or Alt+C to clear selections and highlights</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="keyboardShortcutsEnabled" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div>
+      <button id="save-btn">Save Settings</button>
+      <button id="reset-btn">Reset to Defaults</button>
+    </div>
+    
+    <div id="settings-status-message" class="status-message">Settings saved!</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

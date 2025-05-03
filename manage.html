@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Q&A Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #4285f4;
+    }
+    .qa-form {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea {
+      height: 100px;
+      resize: vertical;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #3367d6;
+    }
+    button.delete {
+      background: #ea4335;
+    }
+    button.delete:hover {
+      background: #d33426;
+    }
+    button.import-export {
+      background: #34a853;
+    }
+    button.import-export:hover {
+      background: #2d9144;
+    }
+    .qa-list {
+      margin-top: 20px;
+    }
+    .qa-item {
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      background-color: #fff;
+    }
+    .qa-question {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .qa-answer {
+      margin-bottom: 15px;
+      white-space: pre-line;
+    }
+    .qa-controls {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .no-data {
+      font-style: italic;
+      color: #666;
+    }
+    .hidden {
+      display: none;
+    }
+    #importInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Manage Q&A Data</h1>
+  
+  <div class="qa-form">
+    <h2>Add New Question & Answer</h2>
+    <label for="question">Question:</label>
+    <input type="text" id="question" placeholder="Enter your question">
+    
+    <label for="answer">Answer:</label>
+    <textarea id="answer" placeholder="Enter your answer"></textarea>
+    
+    <div class="button-group">
+      <button id="add-btn">Add Q&A</button>
+      <button id="import-btn" class="import-export">Import Q&A</button>
+      <button id="export-btn" class="import-export">Export Q&A</button>
+      <input type="file" id="importInput" accept=".json">
+    </div>
+  </div>
+  
+  <div class="qa-list" id="qa-container">
+    <p class="no-data">No Q&A data available yet.</p>
+  </div>
+  
+  <script src="manage.js"></script>
+</body>
+</html>
