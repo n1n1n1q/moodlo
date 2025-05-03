@@ -103,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     resultsElement.innerHTML = html;
+    
+    // Ensure popup is correctly sized and positioned after content is loaded
+    ensurePopupVisibility();
   }
   
   // Helper function to escape HTML to prevent XSS
@@ -114,4 +117,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
+
+  // Function to ensure the popup stays within the viewport
+  function ensurePopupVisibility() {
+    // For standalone popup, we need to check if the window itself is positioned correctly
+    // This handles the Chrome extension popup which is a separate window
+    
+    // Get the current window dimensions
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Get the current document body dimensions (content size)
+    const bodyWidth = document.body.scrollWidth;
+    const bodyHeight = document.body.scrollHeight;
+    
+    // Only adjust the body's max height if it would exceed the window
+    if (bodyHeight > windowHeight) {
+      document.body.style.maxHeight = `${windowHeight}px`;
+      document.body.style.overflowY = 'auto';
+    }
+    
+    // Only adjust the body's max width if it would exceed the window
+    if (bodyWidth > windowWidth) {
+      document.body.style.maxWidth = `${windowWidth}px`;
+      document.body.style.overflowX = 'auto';
+    }
+    
+    // Make sure the results container is visible
+    const results = document.getElementById('results');
+    if (results) {
+      results.style.maxHeight = `${windowHeight - 100}px`; // Leave some space for header
+      results.style.overflowY = 'auto';
+    }
+  }
+  
+  // Call on initial load - with a delay to allow the popup to render
+  setTimeout(ensurePopupVisibility, 100);
+  
+  // Add event listeners for window resizing
+  window.addEventListener('resize', ensurePopupVisibility);
 });
