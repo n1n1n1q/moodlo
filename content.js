@@ -10,6 +10,7 @@ document.addEventListener('mouseup', function(event) {
         autoHighlightEnabled: true,
         popupEnabled: true,
         htmlPopupEnabled: false,
+        inPagePopupOnly: false,
         autoClearSelection: true,
         keyboardShortcutsEnabled: true
       };
@@ -17,19 +18,22 @@ document.addEventListener('mouseup', function(event) {
       // Save the current selection to storage
       chrome.storage.local.set({ 'currentSelection': selection });
       
-      // Let the background script know there's a new selection and request popup if enabled
-      chrome.runtime.sendMessage({ 
-        action: 'newSelection',
-        selection: selection,
-        showPopup: settings.popupEnabled
-      });
+      // Let the background script know there's a new selection and request popup
+      // Only if popup is enabled AND not in in-page popup only mode
+      if (settings.popupEnabled && !settings.inPagePopupOnly) {
+        chrome.runtime.sendMessage({ 
+          action: 'newSelection',
+          selection: selection,
+          showPopup: true
+        });
+      }
       
       // If we're on a Moodle quiz page and auto-highlight is enabled
       if (isMoodlePage() && settings.autoHighlightEnabled) {
         highlightCorrectAnswers(selection);
         
-        // Show HTML-based popup if enabled
-        if (settings.htmlPopupEnabled) {
+        // Show HTML-based popup if enabled or if in-page popup only is enabled
+        if (settings.htmlPopupEnabled || settings.inPagePopupOnly) {
           showHtmlPopup(selection, event);
         }
         
@@ -103,15 +107,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const settings = data.settings || {
         autoHighlightEnabled: true,
         autoClearSelection: true,
-        htmlPopupEnabled: false
+        htmlPopupEnabled: false,
+        inPagePopupOnly: false
       };
       
       // Only highlight if the feature is enabled
       if (settings.autoHighlightEnabled && isMoodlePage()) {
         highlightCorrectAnswers(request.selection);
         
-        // Show HTML-based popup if enabled
-        if (settings.htmlPopupEnabled) {
+        // Show HTML-based popup if enabled or if in-page popup only is enabled
+        if (settings.htmlPopupEnabled || settings.inPagePopupOnly) {
           showHtmlPopup(request.selection, null);
         }
         
@@ -127,9 +132,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 // Function to create and show HTML-based popup
 async function showHtmlPopup(selection, event) {
   try {
-    // Remove any existing popup
-    removeHtmlPopup();
-    
     console.log("Showing HTML popup for selection:", selection.substring(0, 30) + "...");
     
     // Get QA data from storage
@@ -146,67 +148,153 @@ async function showHtmlPopup(selection, event) {
       return;
     }
 
-    // Create popup element
-    const popup = document.createElement('div');
-    popup.id = 'moodle-html-popup';
-    popup.style.cssText = `
-      position: absolute; 
-      z-index: 10000;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-      padding: 15px;
-      max-width: 400px;
-      max-height: 80vh;
-      overflow-y: auto;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      color: #333;
-      top: 100px;
-      left: 100px;
-    `;
+    // Check if popup already exists
+    let popup = document.getElementById('moodle-html-popup');
+    let resultsContainer;
+    
+    // If popup doesn't exist, create it
+    if (!popup) {
+      // Create popup element
+      popup = document.createElement('div');
+      popup.id = 'moodle-html-popup';
+      popup.style.cssText = `
+        position: fixed; 
+        z-index: 10000;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        padding: 15px;
+        width: 400px;
+        height: 300px;
+        min-width: 250px;
+        min-height: 150px;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #333;
+        top: 100px;
+        left: 100px;
+        resize: both;
+      `;
 
-    // Create popup header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 10001;
-    `;
+      // Create popup header
+      const header = document.createElement('div');
+      header.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10001;
+      `;
+      
+      // Add title
+      const title = document.createElement('h3');
+      title.textContent = 'Matching Answers';
+      title.style.margin = '0';
+      title.style.fontSize = '16px';
+      header.appendChild(title);
+      
+      // Add control buttons
+      const controlsDiv = document.createElement('div');
+      controlsDiv.style.display = 'flex';
+      controlsDiv.style.gap = '8px';
+      
+      // Add close button
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '×';
+      closeBtn.title = 'Close';
+      closeBtn.style.cssText = `
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #777;
+        padding: 0;
+        line-height: 1;
+      `;
+      closeBtn.addEventListener('click', removeHtmlPopup);
+      
+      controlsDiv.appendChild(closeBtn);
+      header.appendChild(controlsDiv);
+      
+      popup.appendChild(header);
+      
+      // Add content container
+      resultsContainer = document.createElement('div');
+      resultsContainer.id = 'moodle-html-popup-results';
+      resultsContainer.style.cssText = `
+        height: calc(100% - 40px);
+        overflow-y: auto;
+        padding-right: 5px;
+      `;
+      popup.appendChild(resultsContainer);
+      
+      // Add resize handle (for browsers that don't support the resize property)
+      const resizeHandle = document.createElement('div');
+      resizeHandle.style.cssText = `
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        bottom: 0;
+        right: 0;
+        cursor: nwse-resize;
+        background: linear-gradient(135deg, transparent 50%, #ccc 50%, #ccc 100%);
+        z-index: 10002;
+      `;
+      popup.appendChild(resizeHandle);
+      
+      // Enable custom resize functionality
+      makeElementResizable(popup, resizeHandle);
+      
+      // Add to document
+      document.body.appendChild(popup);
+      
+      // Make popup draggable
+      makeElementDraggable(popup);
+      
+      // Position popup in fixed position
+      // Load saved position and size from storage if available
+      chrome.storage.local.get(['popupPosition', 'popupSize'], function(data) {
+        if (data.popupPosition) {
+          popup.style.left = data.popupPosition.left + 'px';
+          popup.style.top = data.popupPosition.top + 'px';
+        } else {
+          // Set default fixed position (center of screen)
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const popupWidth = popup.offsetWidth;
+          const popupHeight = popup.offsetHeight;
+          
+          const left = (viewportWidth - popupWidth) / 2;
+          const top = (viewportHeight - popupHeight) / 3;
+          
+          popup.style.left = `${left}px`;
+          popup.style.top = `${top}px`;
+        }
+        
+        // Apply saved size if available
+        if (data.popupSize) {
+          popup.style.width = data.popupSize.width + 'px';
+          popup.style.height = data.popupSize.height + 'px';
+        }
+      });
+      
+      console.log("HTML popup created and added to document");
+    } else {
+      // If popup exists, just get the results container to update
+      resultsContainer = document.getElementById('moodle-html-popup-results');
+      // Clear existing results
+      resultsContainer.innerHTML = '';
+      console.log("Updating existing HTML popup");
+    }
     
-    // Add title
-    const title = document.createElement('h3');
-    title.textContent = 'Matching Answers';
-    title.style.margin = '0';
-    title.style.fontSize = '16px';
-    header.appendChild(title);
-    
-    // Add close button
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
-    closeBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      color: #777;
-    `;
-    closeBtn.addEventListener('click', removeHtmlPopup);
-    header.appendChild(closeBtn);
-    
-    popup.appendChild(header);
-    
-    // Add content with results
-    const resultsContainer = document.createElement('div');
-    
+    // Update the results content
     similarQuestions.forEach(question => {
       const resultItem = document.createElement('div');
       resultItem.className = 'html-popup-result';
@@ -271,19 +359,6 @@ async function showHtmlPopup(selection, event) {
       
       resultsContainer.appendChild(resultItem);
     });
-    
-    popup.appendChild(resultsContainer);
-    
-    // First, add to document to calculate dimensions
-    document.body.appendChild(popup);
-    
-    // Then position correctly
-    positionPopup(popup, event);
-    
-    // Make popup draggable
-    makeElementDraggable(popup);
-    
-    console.log("HTML popup created and added to document");
     
   } catch (error) {
     console.error("Error showing HTML popup:", error);
@@ -352,7 +427,7 @@ function makeElementDraggable(element) {
   let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
   
   // If there's a header in the element, attach the listeners to it
-  const header = element.querySelector('h3') || element;
+  const header = element.querySelector('.header') || element.querySelector('h3') || element;
   
   header.style.cursor = 'move';
   header.addEventListener('mousedown', dragMouseDown);
@@ -370,21 +445,127 @@ function makeElementDraggable(element) {
   
   function elementDrag(e) {
     e.preventDefault();
-    // Calculate the new cursor position
+    // Calculate the new position
     pos1 = pos3 - e.clientX;
     pos2 = pos4 - e.clientY;
     pos3 = e.clientX;
     pos4 = e.clientY;
     
-    // Set the element's new position
-    element.style.top = (element.offsetTop - pos2) + "px";
-    element.style.left = (element.offsetLeft - pos1) + "px";
+    // Set the element's new position with fixed positioning
+    const newTop = parseInt(element.style.top || '0') - pos2;
+    const newLeft = parseInt(element.style.left || '0') - pos1;
+    
+    element.style.top = newTop + "px";
+    element.style.left = newLeft + "px";
   }
   
   function closeDragElement() {
     // Stop moving when mouse button is released
     document.removeEventListener('mousemove', elementDrag);
     document.removeEventListener('mouseup', closeDragElement);
+    
+    // Save the position to storage
+    if (element.id === 'moodle-html-popup') {
+      const position = {
+        left: parseInt(element.style.left),
+        top: parseInt(element.style.top)
+      };
+      
+      chrome.storage.local.set({ 'popupPosition': position });
+      console.log('Popup position saved:', position);
+    }
+  }
+}
+
+// Function to make an element resizable
+function makeElementResizable(element, handle) {
+  let startX, startY, startWidth, startHeight;
+
+  // Add listener for native resize (in case browser supports 'resize: both')
+  const resizeObserver = new ResizeObserver(entries => {
+    for (let entry of entries) {
+      // Save the size to storage when resized by native controls
+      const size = {
+        width: entry.contentRect.width,
+        height: entry.contentRect.height
+      };
+      chrome.storage.local.set({ 'popupSize': size });
+      console.log('Popup size saved from ResizeObserver:', size);
+    }
+  });
+  
+  // Start observing the element
+  resizeObserver.observe(element);
+
+  // Handle manual resize with the resize handle
+  handle.addEventListener('mousedown', initResize);
+
+  function initResize(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent dragging from starting
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+    startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+    document.documentElement.addEventListener('mousemove', doResize);
+    document.documentElement.addEventListener('mouseup', stopResize);
+  }
+
+  function doResize(e) {
+    // Calculate new dimensions based on mouse movement
+    const newWidth = Math.max(startWidth + e.clientX - startX, 250); // Respect min width
+    const newHeight = Math.max(startHeight + e.clientY - startY, 150); // Respect min height
+    
+    // Apply new dimensions
+    element.style.width = newWidth + 'px';
+    element.style.height = newHeight + 'px';
+    
+    // Ensure the popup stays within viewport bounds
+    ensurePopupVisibility(element);
+  }
+
+  function stopResize() {
+    document.documentElement.removeEventListener('mousemove', doResize);
+    document.documentElement.removeEventListener('mouseup', stopResize);
+
+    // Save the size to storage
+    const size = {
+      width: parseInt(element.style.width),
+      height: parseInt(element.style.height)
+    };
+
+    chrome.storage.local.set({ 'popupSize': size });
+    console.log('Popup size saved from handle resize:', size);
+  }
+}
+
+// Function to ensure popup stays within viewport
+function ensurePopupVisibility(popup) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  const rect = popup.getBoundingClientRect();
+  
+  // Check if popup extends beyond right edge
+  if (rect.right > viewportWidth) {
+    const newWidth = viewportWidth - rect.left - 20;
+    if (newWidth >= 250) { // Respect min width
+      popup.style.width = newWidth + 'px';
+    } else {
+      // Move popup left instead of reducing width below minimum
+      popup.style.left = (viewportWidth - 250 - 20) + 'px';
+    }
+  }
+  
+  // Check if popup extends beyond bottom edge
+  if (rect.bottom > viewportHeight) {
+    const newHeight = viewportHeight - rect.top - 20;
+    if (newHeight >= 150) { // Respect min height
+      popup.style.height = newHeight + 'px';
+    } else {
+      // Move popup up instead of reducing height below minimum
+      popup.style.top = (viewportHeight - 150 - 20) + 'px';
+    }
   }
 }
 
@@ -542,17 +723,9 @@ function highlightAnswers(container, correctAnswers) {
     // Check if this answer matches any correct answer
     for (const correctAnswer of correctAnswers) {
       if (answerText.includes(correctAnswer) || correctAnswer.includes(answerText)) {
-        // Find the checkbox input
-        const checkbox = answerEl.querySelector('input[type="checkbox"]');
-        
-        // Highlight the container
-        answerEl.classList.add('moodle-answer-highlight');
-        
-        // Check the checkbox if it exists
-        if (checkbox) {
-          checkbox.checked = true;
-        }
-        
+        // We no longer automatically highlight or select answers
+        // Just track the match for potential future use
+        answerEl.dataset.matchedAnswer = 'true';
         break;
       }
     }

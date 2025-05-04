@@ -58,7 +58,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     
     // Check settings before performing actions
     chrome.storage.sync.get(['settings'], function(data) {
-      const settings = data.settings || { autoHighlightEnabled: true, popupEnabled: true };
+      const settings = data.settings || { 
+        autoHighlightEnabled: true, 
+        popupEnabled: true,
+        inPagePopupOnly: false
+      };
       
       // Send message to content script to highlight answers if highlighting is enabled
       if (settings.autoHighlightEnabled) {
@@ -68,8 +72,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         });
       }
       
-      // Show popup if enabled
-      if (settings.popupEnabled) {
+      // Show popup if enabled and not in "in-page popup only" mode
+      if (settings.popupEnabled && !settings.inPagePopupOnly) {
         chrome.action.openPopup();
       }
     });
@@ -81,7 +85,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "newSelection") {
-    // Update the badge to indicate there's a selection
+    // Update the badge to indicate there's a selection, regardless of popup settings
     chrome.action.setBadgeText({
       text: "✓",
       tabId: sender.tab.id
@@ -95,9 +99,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Check settings before showing popup
     if (message.showPopup) {
       chrome.storage.sync.get(['settings'], function(data) {
-        const settings = data.settings || { popupEnabled: true };
+        const settings = data.settings || { popupEnabled: true, inPagePopupOnly: false };
         
-        if (settings.popupEnabled) {
+        // Only open the popup if enabled and not in "in-page popup only" mode
+        if (settings.popupEnabled && !settings.inPagePopupOnly) {
           setTimeout(() => {
             chrome.action.openPopup();
           }, 100);

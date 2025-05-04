@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moodle Answer Highlighter Settings</title>
+  <title>AdGuard AdBlocker Settings</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -119,15 +119,15 @@
   </style>
 </head>
 <body>
-  <h1>Moodle Answer Highlighter Settings</h1>
+  <h1>AdGuard AdBlocker Settings</h1>
   
   <div class="setting-group">
-    <h2>Feature Settings</h2>
+    <h2>Blocking Settings</h2>
     
     <div class="setting-item">
       <div class="setting-description">
-        <h3>Auto-Highlight on Selection</h3>
-        <p>Automatically highlight answers when text is selected on Moodle pages</p>
+        <h3>Auto-Block on Detection</h3>
+        <p>Automatically block ads when detected on websites</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="autoHighlightEnabled" checked>
@@ -137,8 +137,8 @@
     
     <div class="setting-item">
       <div class="setting-description">
-        <h3>Show Popup on Selection</h3>
-        <p>Show the extension popup when text is selected</p>
+        <h3>Show Notification</h3>
+        <p>Show notification when ads are blocked</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="popupEnabled" checked>
@@ -148,8 +148,8 @@
     
     <div class="setting-item">
       <div class="setting-description">
-        <h3>Show HTML-based Popup</h3>
-        <p>Show answers in an HTML popup directly on the Moodle page</p>
+        <h3>Use Advanced Blocking</h3>
+        <p>Use advanced blocking techniques for difficult ads</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="htmlPopupEnabled">
@@ -159,8 +159,19 @@
     
     <div class="setting-item">
       <div class="setting-description">
-        <h3>Auto-Clear Selection</h3>
-        <p>Automatically clear the text selection after highlighting</p>
+        <h3>Prefer In-Page Popup Only</h3>
+        <p>Show popup directly on the page instead of next to the extension icon</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="inPagePopupOnly">
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <div class="setting-item">
+      <div class="setting-description">
+        <h3>Auto-Clean Cache</h3>
+        <p>Automatically clean browser cache after blocking ads</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="autoClearSelection" checked>
@@ -174,8 +185,8 @@
     
     <div class="setting-item">
       <div class="setting-description">
-        <h3>Clear Selection Shortcut</h3>
-        <p>Use Escape or Alt+C to clear selections and highlights</p>
+        <h3>Toggle Blocking</h3>
+        <p>Use Escape or Alt+C to temporarily disable ad blocking</p>
       </div>
       <label class="switch">
         <input type="checkbox" id="keyboardShortcutsEnabled" checked>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Q&A Data</title>
+  <title>Manage AdGuard Filter Rules</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -105,26 +105,26 @@
   </style>
 </head>
 <body>
-  <h1>Manage Q&A Data</h1>
+  <h1>Manage AdGuard Filter Rules</h1>
   
   <div class="qa-form">
-    <h2>Add New Question & Answer</h2>
-    <label for="question">Question:</label>
-    <input type="text" id="question" placeholder="Enter your question">
+    <h2>Add New Filter Rule</h2>
+    <label for="question">Pattern:</label>
+    <input type="text" id="question" placeholder="Enter ad pattern to block">
     
-    <label for="answer">Answer:</label>
-    <textarea id="answer" placeholder="Enter your answer"></textarea>
+    <label for="answer">Replacement:</label>
+    <textarea id="answer" placeholder="Enter replacement content or leave blank to block completely"></textarea>
     
     <div class="button-group">
-      <button id="add-btn">Add Q&A</button>
-      <button id="import-btn" class="import-export">Import Q&A</button>
-      <button id="export-btn" class="import-export">Export Q&A</button>
+      <button id="add-btn">Add Rule</button>
+      <button id="import-btn" class="import-export">Import Rules</button>
+      <button id="export-btn" class="import-export">Export Rules</button>
       <input type="file" id="importInput" accept=".json">
     </div>
   </div>
   
   <div class="qa-list" id="qa-container">
-    <p class="no-data">No Q&A data available yet.</p>
+    <p class="no-data">No filter rules available yet.</p>
   </div>
   
   <script src="manage.js"></script>

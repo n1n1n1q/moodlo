@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Moodle Answer Highlighter",
-  "description": "Highlights correct answers on Moodle quizzes based on saved Q&A data",
+  "name": "AdGuard AdBlocker",
+  "description": "Blocks ads and pop-ups on websites. Protects from tracking and enhances page load speed.",
   "version": "1.0",
   "action": {
     "default_popup": "popup.html",

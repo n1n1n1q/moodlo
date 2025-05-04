@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoHighlightEnabled = document.getElementById('autoHighlightEnabled');
   const popupEnabled = document.getElementById('popupEnabled');
   const htmlPopupEnabled = document.getElementById('htmlPopupEnabled');
+  const inPagePopupOnly = document.getElementById('inPagePopupOnly');
   const autoClearSelection = document.getElementById('autoClearSelection');
   const keyboardShortcutsEnabled = document.getElementById('keyboardShortcutsEnabled');
   const saveBtn = document.getElementById('save-btn');
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autoHighlightEnabled: true,
     popupEnabled: true,
     htmlPopupEnabled: false,
+    inPagePopupOnly: false,
     autoClearSelection: true,
     keyboardShortcutsEnabled: true
   };
@@ -34,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       autoHighlightEnabled.checked = settings.autoHighlightEnabled !== false;
       popupEnabled.checked = settings.popupEnabled !== false;
       htmlPopupEnabled.checked = settings.htmlPopupEnabled === true;
+      inPagePopupOnly.checked = settings.inPagePopupOnly === true;
       autoClearSelection.checked = settings.autoClearSelection !== false;
       keyboardShortcutsEnabled.checked = settings.keyboardShortcutsEnabled !== false;
     });
@@ -45,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       autoHighlightEnabled: autoHighlightEnabled.checked,
       popupEnabled: popupEnabled.checked,
       htmlPopupEnabled: htmlPopupEnabled.checked,
+      inPagePopupOnly: inPagePopupOnly.checked,
       autoClearSelection: autoClearSelection.checked,
       keyboardShortcutsEnabled: keyboardShortcutsEnabled.checked
     };
@@ -65,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autoHighlightEnabled.checked = defaultSettings.autoHighlightEnabled;
     popupEnabled.checked = defaultSettings.popupEnabled;
     htmlPopupEnabled.checked = defaultSettings.htmlPopupEnabled;
+    inPagePopupOnly.checked = defaultSettings.inPagePopupOnly;
     autoClearSelection.checked = defaultSettings.autoClearSelection;
     keyboardShortcutsEnabled.checked = defaultSettings.keyboardShortcutsEnabled;
     
